@@ -1,0 +1,21 @@
+_target_: agents.dqn.DQN
+
+Network:
+  name : DQN
+  input_dim : ???
+  action_dim : ???
+  fc_hidden_size : [512, 256, 128]
+  lr: 1e-3
+  gamma : 0.99
+  tau : 1e-2
+  initial_random_samples : 10000
+  epsilon_start : 1.0
+  epsilon_end : 0.05
+  epsilon_decay : 5000
+  batch_size : 100
+  buffer_size : 100000
+  clip_grad_param : 10
+  test_episodes : 10
+  video_save_path : "results"
+Test: 
+  checkpoint : model_weights/
