@@ -40,7 +40,30 @@ def init_layer_orthogonal(layer, gain=torch.sqrt(torch.tensor(2.0))):
             nn.init.zeros_(layer.bias)  # Initialize bias to zero
     return layer
 
+class FiLM(nn.Module):
+    def __init__(self, num_features, cond_dim):
+        """
+        Args:
+            num_features (int): Number of feature channels to condition.
+            cond_dim (int): Dimension of the condition vector.
+        """
+        super(FiLM, self).__init__()
+        # Learn a scaling (gamma) and shifting (beta) for each feature channel.
+        self.gamma = nn.Linear(cond_dim, num_features)
+        self.beta  = nn.Linear(cond_dim, num_features)
 
+    def forward(self, x, cond):
+        """
+        Args:
+            x (Tensor): Feature map of shape (B, C, H, W).
+            cond (Tensor): Condition vector of shape (B, cond_dim).
+        Returns:
+            Tensor: FiLM-modulated feature map.
+        """
+        # Compute scale and shift parameters (B, F)
+        gamma = self.gamma(cond)
+        beta  = self.beta(cond)
+        return gamma * x + beta
 
 class MLP(nn.Module):
     """

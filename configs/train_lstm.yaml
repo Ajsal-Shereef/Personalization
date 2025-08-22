@@ -1,0 +1,10 @@
+defaults:
+  - env : highway
+  - LSTM : lstm
+  - agents : dqn
+
+epochs : 2000
+use_wandb : True
+mode : preference
+datapath : data
+save_every : 10

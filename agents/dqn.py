@@ -21,12 +21,6 @@ class DQN(nn.Module):
     
     def __init__(self, Network: dict, Test: dict, **kwargs):
         """Initialize an Agent object.
-        
-        Params
-        ======
-            state_size (int): dimension of each state
-            action_size (int): dimension of each action
-            random_seed (int): random seed
         """
         super(DQN, self).__init__()
         
@@ -159,21 +153,21 @@ class DQN(nn.Module):
     def set_vision_models(self, model):
         self.vision_model = model
         
-    def test(self, env, vision_model, env_type="Train"):
+    def test(self, env):
         """Test the agent in the environment."""
-        dump_dir = f"{self.video_dir}/{env.name}/{self.agent_name} + {vision_model}/{env_type}"
+        dump_dir = f"{self.video_dir}/{env.name}/{self.agent_name}"
         epsilon = self.epsilon
         self.epsilon = 0
         for episode in range(self.test_episodes):
             frame_array = []
             state, info = env.reset()
-            frame_array.append(env.unwrapped.get_frame())
+            frame_array.append(env.get_frame())
             cumulative_reward = 0
             done = False
             while not done:
                 action = self.get_action(state, self.initial_random_samples+1)
                 next_state, reward, truncated, terminated, _ = env.step(action)
-                frame_array.append(env.unwrapped.get_frame())
+                frame_array.append(env.get_frame())
                 done = truncated + terminated
                 cumulative_reward += reward
                 state = next_state
@@ -187,7 +181,7 @@ class DQN(nn.Module):
         self.critic.load_state_dict(params["critic"])
         self.critic_target.load_state_dict(self.critic.state_dict())
         self.critic_optimizer.load_state_dict(params["critic_optim"])
-        print("[INFO] loaded the SAC model", path)
+        print("[INFO] loaded the DQN model", path)
 
     def save(self, dump_dir, save_name):
         """Save model and optimizer parameters."""
@@ -198,6 +192,6 @@ class DQN(nn.Module):
         save_dir = dump_dir
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
-        checkpoint_path = save_dir + '/' + save_name + '.tar'
+        checkpoint_path = save_dir + save_name + '.tar'
         torch.save(params, checkpoint_path)
-        print("[INFO] Model saved to: ", checkpoint_path)
+        print("[INFO] DQN model saved to: ", checkpoint_path)

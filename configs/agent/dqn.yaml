@@ -7,15 +7,16 @@ Network:
   fc_hidden_size : [512, 256, 128]
   lr: 1e-3
   gamma : 0.99
-  tau : 1e-2
-  initial_random_samples : 10000
+  tau : 5e-3
+  initial_random_samples : 4000
   epsilon_start : 1.0
-  epsilon_end : 0.05
+  epsilon_end : 0.01
   epsilon_decay : 5000
   batch_size : 100
   buffer_size : 100000
   clip_grad_param : 10
   test_episodes : 10
-  video_save_path : "results"
+  video_save_path : results
+  interaction_data_path : data
 Test: 
   checkpoint : model_weights/

@@ -1,7 +1,8 @@
 defaults:
   - env : highway
   - agent : dqn
-total_timestep : 12500
+total_timestep : 150000
 save_every : 10000
+mode : mixed
 use_wandb : False
 log_every : 100

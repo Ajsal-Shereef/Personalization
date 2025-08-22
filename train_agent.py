@@ -8,15 +8,13 @@ from PIL import Image
 from collections import deque
 from architectures.common_utils import *
 from omegaconf import DictConfig, OmegaConf
+from agents.agent_utils.trajectory_buffer import TrajectoryReplayBuffer
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def make_agent(env, cfg):
     cfg.agent.Network.action_dim = int(env.action_space.n)
     cfg.agent.Network.input_dim = int(env.observation_space.shape[0])
-    return hydra.utils.instantiate(cfg)
-
-def make_vision_model(cfg):
     return hydra.utils.instantiate(cfg)
 
 @hydra.main(version_base=None, config_path="configs", config_name="train_agent")
@@ -26,13 +24,22 @@ def train(args: DictConfig) -> None:
     # torch.manual_seed(config.seed)
     
     if args.env.name ==  "Highway":
-        from env.env import Highway
+        from env.highway import Highway
         env = Highway(args.env)
+        #Initialisng the labeller
+        from Labeller.oracle import HumanOracleHighway
+        labeller = HumanOracleHighway(env, args.mode)
+    elif args.env.name ==  "Pong":
+        from env.pong import Pong
+        env = Pong(args.env)
+        #Initialisng the labeller
+        from Labeller.oracle import HumanOraclePong
+        labeller = HumanOraclePong(env, args.mode)
     else:
         raise NotImplementedError("The environment is not implemented yet")
     
     if args.use_wandb:
-        wandb.init(project="Project 1", name=f"{args.agents.Network.name}", config=OmegaConf.to_container(args, resolve=True))
+        wandb.init(project="Project 1", name=f"{args.agent.Network.name}", config=OmegaConf.to_container(args, resolve=True))
 
     print("[INFO] Agent name: ", args.agent.Network.name)
     print("[INFO] Env:", args.env.name)
@@ -49,17 +56,32 @@ def train(args: DictConfig) -> None:
     config_path = os.path.join(model_dir, "config.yaml")
     OmegaConf.save(config=args, f=config_path)
     
+    #Initialising trajectory buffer
+    trajectory_buffer = TrajectoryReplayBuffer(env.observation_space.shape[0], args.env.max_steps, int(np.floor(args.total_timestep/args.env.max_steps)), device)
+    
+    episode_states = []
+    episode_next_states = []
+    episode_actions = []
+    episode_labels = []
     env_total_steps = 0
     env_episode_steps = 0
     env_episodes = 0
     agent.do_pre_task_proceessing()   
     state, info = env.reset()
+    labeller.update_counts(info)
     cumulative_reward = 0
     average_episodic_return = deque(maxlen=10)
     for i in range(1, args.total_timestep+1):
         action = agent.get_action(state, env_total_steps)
-        next_state, reward, terminated, truncated, _ = env.step(action)
+        next_state, reward, terminated, truncated, info = env.step(action)
         done = terminated + truncated
+        
+        labeller.update_counts(info)
+        episode_states.append(state)
+        episode_next_states.append(next_state)
+        episode_actions.append(action)
+        episode_labels.append(labeller.get_human_feedback())
+        
         agent.add_transition_to_buffer((state, action, reward, next_state, terminated, truncated))
         metric = agent.learn()
         state = next_state
@@ -79,19 +101,23 @@ def train(args: DictConfig) -> None:
             env_episode_steps = 0
             cumulative_reward = 0
             agent.do_post_episode_processing(env_total_steps)
+            trajectory_buffer.add((episode_states, episode_actions, episode_labels, episode_next_states))
+            labeller.reset_episode_count()
+            episode_states = []
+            episode_next_states = []
+            episode_actions = []
+            episode_labels = []
 
         if args.use_wandb and env_total_steps%args.log_every==0:
             wandb.log(metric)
         if i % args.save_every == 0:
-            agent.save(f"{model_dir}/", save_name=f"{args.agents.Network.name}")
-    
-    # Setitng the vision model in the agent class
+            agent.save(f"{model_dir}/", save_name=f"{args.agent.Network.name}")
+    #Saving the trajectory data
+    trajectory_buffer.save_buffer_data(f"{args.agent.Network.interaction_data_path}/{args.env.name}/{args.mode}", mode=args.mode)
     agent.eval()
-    agent.test(env, args.vision_models.vision_models.Network.name)
-    env.unwrapped.allowed_types = args.env.test_allowed_types
-    agent.test(env, args.vision_models.vision_models.Network.name, "Test")
+    agent.test(env)
     #Saving the model
-    agent.save(f"{model_dir}/", save_name=f"{args.agents.Network.name}_{args.vision_models.vision_models.Network.name}")
+    agent.save(f"{model_dir}/", save_name=f"{args.agent.Network.name}")
     
 if __name__ == "__main__":
     train()

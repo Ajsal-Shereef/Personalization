@@ -1,0 +1,134 @@
+import os
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from architectures.mlp import MLP, FiLM
+from widis_lstm_tools.nn import LSTMLayer
+from architectures.common_utils import custom_action_encoding
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+class LSTM(nn.Module):
+    def __init__(self, Network: dict, Test: dict, **kwargs):
+        super(LSTM, self).__init__()
+        feature_size = Network["feature_size"]
+        self.n_action = Network["n_actions"]
+        lstm_units = Network["n_units"]
+        self.batch_size = Network["batch_size"]
+        self.q_estimate_loss_window = Network["q_estimate_loss_window"]
+        self.aux_loss_weight = Network["aux_loss_weight"]
+        self.gradient_clipping = Network["gradient_clipping"]
+        self.action_encoding_dim = round(feature_size / self.n_action) * self.n_action
+        
+        #Networks components
+        self.film = FiLM(feature_size, self.action_encoding_dim)
+        self.lstm_layer = LSTMLayer(in_features=feature_size, out_features=lstm_units,
+                                    w_ci=(lambda *args, **kwargs: nn.init.normal_(mean=0, std=0.1, *args, **kwargs), False),
+                                    w_ig=(False, lambda *args, **kwargs: nn.init.normal_(mean=0, std=0.1, *args, **kwargs)),
+                                    w_og=False,
+                                    b_ci=lambda *args, **kwargs: nn.init.normal_(mean=0, *args, **kwargs),
+                                    b_ig=lambda *args, **kwargs: nn.init.normal_(mean=-5, *args, **kwargs),
+                                    b_og=False,
+                                    a_out=lambda x: x)
+        self.post_lstm_linear_layer = MLP(Network["n_units"], 1, [Network["n_units"]//2], hidden_activation="lrelu")
+        self.aux_lstm_linear_layer = MLP(Network["n_units"], 1, [Network["n_units"]//2], hidden_activation="lrelu")
+        
+        self.optimizer = optim.Adam(self.parameters(),
+                                    lr=Network["lr"],
+                                    weight_decay=Network["l2_regularization"],
+                                    eps=Network["adam_eps"],
+                                    )
+    
+    def forward(self, states, action):
+        action_embedding = custom_action_encoding(action, self.n_action, self.action_encoding_dim)
+        conditional_input = self.film(states, action_embedding)
+        lstm_input = self.lstm_layer(conditional_input, return_all_seq_pos = True)[0]
+        B, T, _ = lstm_input.shape
+        q_values = self.post_lstm_linear_layer(lstm_input.view(B*T, -1)).view(B,T)
+        q_estimate = self.aux_lstm_linear_layer(lstm_input.view(B*T, -1)).view(B,T)
+        return q_values, q_estimate
+    
+    def calculate_main_loss(self, q, label, length):
+        label_ = label.unsqueeze(-1).repeat(1, q.size(1))
+        all_timestep_loss = F.mse_loss(q, label_, reduction = 'none')
+        len = length[:] - 1
+        all_timestep_loss_indexed = all_timestep_loss[range(q.size(0)), len]
+        return all_timestep_loss_indexed
+    
+    def calculate_aux_loss(self, q, label, length):#, pred_q):
+
+        # B x L
+        label_ = label.unsqueeze(-1).repeat(1, q.size(1))
+        all_timestep_loss = F.mse_loss(q, label_, reduction = 'none')
+            
+        # Create the mask
+        self.mask = torch.zeros_like(all_timestep_loss)
+        for l_num, l in enumerate(length):
+            self.mask[l_num, :l] = 1
+                
+        #Multiplying with the self.mask to avoid the padded sequence
+        all_timestep_loss = all_timestep_loss * self.mask
+
+        # Average for each sequence
+        self.mean_all_timestep_loss_along_sequence = all_timestep_loss.sum(1) / self.mask.sum(1)
+    
+        return self.mean_all_timestep_loss_along_sequence
+    
+    def q_estimate_loss(self, q_values, q_estimate):
+        q_values = q_values[:,self.q_estimate_loss_window:,...]
+        q_values_estimate = q_estimate[:,:-self.q_estimate_loss_window,...]
+        loss = F.mse_loss(q_values_estimate, q_values, reduction ='none')
+        loss = loss.sum(1).squeeze(-1)
+        return loss
+    
+    def learn(self, data):
+        states = data[0].to(device)
+        actions = data[1].to(device)
+        lengths = data[2].to(device)
+        labels = data[3].to(device)
+        
+        q_values, q_estimate = self(states, actions)
+        main_loss = self.calculate_main_loss(q_values, labels, lengths).mean()
+        aux_loss = self.calculate_aux_loss(q_values, labels, lengths).mean()
+        q_estimate_loss = self.q_estimate_loss(q_values, q_estimate).mean()
+        loss = main_loss + self.aux_loss_weight*(aux_loss + q_estimate_loss)
+        
+        #Optimization
+        self.optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.parameters(), self.gradient_clipping)
+        self.optimizer.step()
+        
+        metrics = {"Main loss" : main_loss.item(),
+                   "Aux loss" : aux_loss.item(),
+                   "Q estimate loss" : q_estimate_loss.item(),
+                   "Loss" : loss.item()}
+        return metrics
+    
+    def load_params(self, path):
+        """Load model and optimizer parameters."""
+        params = torch.load(path, map_location=device, weights_only=True)
+        self.film.load_state_dict(params["film"])
+        self.lstm_layer.load_state_dict(params["lstm_layer"])
+        self.post_lstm_linear_layer.load_state_dict(params["post_lstm_linear_layer"])
+        self.aux_lstm_linear_layer.load_state_dict(params["aux_lstm_linear_layer"])
+        print("[INFO] loaded the LSTM model", path)
+
+    def save(self, dump_dir, save_name):
+        """Save model and optimizer parameters."""
+        params = {
+                "film": self.film.state_dict(),
+                "lstm_layer" : self.lstm_layer.state_dict(),
+                "post_lstm_linear_layer" : self.post_lstm_linear_layer.state_dict(),
+                "aux_lstm_linear_layer" : self.aux_lstm_linear_layer.state_dict()
+                }
+        save_dir = dump_dir
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+        checkpoint_path = save_dir + save_name + '.tar'
+        torch.save(params, checkpoint_path)
+        print("[INFO] LSTM model saved to: ", checkpoint_path)
+        
+    
+    

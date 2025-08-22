@@ -1,0 +1,17 @@
+_target_: lstm.lstm.LSTM
+
+Network:
+  name: LSTM
+  feature_size : ???
+  n_actions : ???
+  n_units : 64
+  lr : 0.0001
+  l2_regularization : 1.0e-6
+  adam_eps : 0.000001
+  batch_size : 300
+  q_estimate_loss_window : 3
+  aux_loss_weight : 0.10
+  plot_internals : True
+  gradient_clipping : 10
+Test:
+  checkpoint : model_weights/LSTM
