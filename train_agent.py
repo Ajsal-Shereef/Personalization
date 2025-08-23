@@ -39,7 +39,7 @@ def train(args: DictConfig) -> None:
         raise NotImplementedError("The environment is not implemented yet")
     
     if args.use_wandb:
-        wandb.init(project="Project 1", name=f"{args.agent.Network.name}", config=OmegaConf.to_container(args, resolve=True))
+        wandb.init(project="Project 1", name=f"{args.agent.Network.name}_{args.env.name}", config=OmegaConf.to_container(args, resolve=True))
 
     print("[INFO] Agent name: ", args.agent.Network.name)
     print("[INFO] Env:", args.env.name)
@@ -68,7 +68,7 @@ def train(args: DictConfig) -> None:
     env_episodes = 0
     agent.do_pre_task_proceessing()   
     state, info = env.reset()
-    labeller.update_counts(info)
+    labeller.update_counts(info if args.env.name ==  "Highway" else state)
     cumulative_reward = 0
     average_episodic_return = deque(maxlen=10)
     for i in range(1, args.total_timestep+1):
@@ -76,11 +76,11 @@ def train(args: DictConfig) -> None:
         next_state, reward, terminated, truncated, info = env.step(action)
         done = terminated + truncated
         
-        labeller.update_counts(info)
+        labeller.update_counts(info if args.env.name ==  "Highway" else state)
         episode_states.append(state)
         episode_next_states.append(next_state)
         episode_actions.append(action)
-        episode_labels.append(labeller.get_human_feedback())
+        episode_labels.append(labeller.get_human_feedback(state))
         
         agent.add_transition_to_buffer((state, action, reward, next_state, terminated, truncated))
         metric = agent.learn()
@@ -115,7 +115,7 @@ def train(args: DictConfig) -> None:
     #Saving the trajectory data
     trajectory_buffer.save_buffer_data(f"{args.agent.Network.interaction_data_path}/{args.env.name}/{args.mode}", mode=args.mode)
     agent.eval()
-    agent.test(env)
+    agent.test(env, args.env.fps)
     #Saving the model
     agent.save(f"{model_dir}/", save_name=f"{args.agent.Network.name}")
     

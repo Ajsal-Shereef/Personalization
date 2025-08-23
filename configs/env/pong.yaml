@@ -1,4 +1,8 @@
+name : Pong
 max_score : 1
 max_steps : 1000
 cpu_speed_ratio : 0.5
 players_speed_ratio : 0.5
+snip_trajectory : True
+snip_trajectory_window : 50
+fps : 30

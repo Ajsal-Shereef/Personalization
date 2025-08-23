@@ -5,7 +5,7 @@ Network:
   input_dim : ???
   action_dim : ???
   fc_hidden_size : [512, 256, 128]
-  lr: 1e-3
+  lr: 1e-4
   gamma : 0.99
   tau : 5e-3
   initial_random_samples : 4000

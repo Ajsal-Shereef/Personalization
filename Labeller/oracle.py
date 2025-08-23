@@ -1,6 +1,3 @@
-import numpy as np
-import matplotlib.pyplot as plt
-
 class HumanOracleHighway():
     """This class is a simmulated human which gives the safety feedback"""
     def __init__(self, env, mode):
@@ -24,6 +21,7 @@ class HumanOracleHighway():
             return 1
         if lane == 0:
             return -1
+        return 0
     
     def return_counts(self):
         if self.mode == 'preference':

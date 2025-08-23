@@ -1,3 +1,6 @@
 name : Highway
 max_steps : 50
 lane_count : 4
+snip_trajectory : False
+snip_trajectory_window : None
+fps : 2.5

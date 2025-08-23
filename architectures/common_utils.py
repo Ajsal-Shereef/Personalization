@@ -29,6 +29,77 @@ def identity(x, dim=0):
     """
     return x
 
+import torch
+
+def snip_trajectories(
+    is_snip_trajectory: bool,
+    snipping_window : int,
+    train_observations: torch.Tensor,
+    train_action: torch.Tensor,
+    train_len: torch.Tensor,
+    labels: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Snips trajectories to a fixed length of snipping_window, starting from a random index.
+
+    Args:
+        train_observations (torch.Tensor): Tensor of observations with shape
+                                           (batch_size, max_seq_len, obs_dim).
+        train_action (torch.Tensor): Tensor of actions with shape
+                                     (batch_size, max_seq_len, ...).
+        labels (torch.Tensor): Tensor of labels with shape
+                                (batch_size, max_seq_len).
+        train_len (torch.Tensor): 1D Tensor of original trajectory lengths
+                                  with shape (batch_size,).
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        A tuple containing the snipped observations, actions, labels, and the
+        new trajectory lengths.
+    """
+    if not is_snip_trajectory:
+        # If snipping is not required, return the original tensors.
+        return [train_observations, train_action, train_len, torch.sum(labels, dim=-1)]
+    # Ensure all operations happen on the same device as the input tensors
+    device = train_observations.device
+    batch_size = train_observations.shape[0]
+
+    # 1. Determine the random start index for each trajectory in the batch
+    # The upper bound for randint is clipped to ensure we can always snip snipping_window steps.
+    # If a trajectory is shorter than snipping_window steps, we must start at index 0.
+    # The `min=1` ensures that the argument to randint is at least 1.
+    max_start_index = torch.clamp(train_len - snipping_window, min=1).float()
+    
+    # Generate random floats in [0, 1) and scale them to get integer start indices
+    lower_bound = (torch.rand(batch_size, device=device) * max_start_index).long()
+
+    # 2. Create the indices for the snipping_window-step snippets for the whole batch
+    # `lower_bound.unsqueeze(1)` has shape (batch_size, 1)
+    # `torch.arange(snipping_window)` has shape (snipping_window,)
+    # Broadcasting results in `indices` with shape (batch_size, snipping_window)
+    indices = lower_bound.unsqueeze(1) + torch.arange(snipping_window, device=device)
+
+    # 3. Gather the snippets from actions and labels
+    # Assumes train_action and labels are 2D: (batch_size, max_seq_len)
+    # If train_action has more dimensions, its gather logic should match observations
+    if train_action.dim() > 2:
+        action_indices = indices.unsqueeze(-1).expand(*indices.shape, train_action.shape[-1])
+        train_action = torch.gather(train_action, 1, action_indices)
+    else:
+        train_action = torch.gather(train_action, 1, indices)
+    
+    labels = torch.gather(labels, 1, indices)
+
+    # 4. Gather the snippets from observations
+    # The indices tensor needs an extra dimension to match the rank of train_observations
+    obs_indices = indices.unsqueeze(-1).expand(-1, -1, train_observations.shape[-1])
+    train_observations = torch.gather(train_observations, 1, obs_indices)
+    
+    # 5. Update the trajectory lengths
+    train_len = torch.clamp(train_len, max=snipping_window)
+    
+    return [train_observations, train_action, train_len, torch.sum(labels, dim=-1)]
+
 def custom_action_encoding(action_tensor: torch.Tensor, num_actions: int, dim: int):
     """
     Encodes a tensor of actions into a high-dimensional one-hot representation over segments.
@@ -160,7 +231,7 @@ def zip_strict(*iterables: Iterable) -> Iterable:
             raise ValueError("Iterables have different lengths")
         yield combo
     
-def save_gif(frames, episode, dump_dir, duration=100):
+def save_gif(frames, episode, dump_dir, fps):
     os.makedirs(dump_dir, exist_ok=True)
     gif_path = os.path.join(dump_dir, f'{episode}.gif')
     
@@ -169,7 +240,7 @@ def save_gif(frames, episode, dump_dir, duration=100):
         gif_path,
         save_all=True,
         append_images=pil_frames[1:],
-        duration=duration,
+        duration=int(1000 / fps),
         loop=0
     )
 

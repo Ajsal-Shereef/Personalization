@@ -8,13 +8,14 @@ from gymnasium.core import ObservationWrapper
 class Highway(ObservationWrapper):
     "This class creates the Highway environment with a specified number of lanes and maximum steps."
     def __init__(self, config):
-        self.env = gymnasium.make('highway-v0', render_mode="rgb_array")
+        self.env = gymnasium.make('highway-fast-v0', render_mode="rgb_array")
         self.name = "Highway"
         env_config = {
                     "observation": {
                     "type": "Kinematics",
                     "vehicles_count": 5,
                     "features": ["presence", "x", "y", "vx", "vy"],
+                    "collision_reward": -1,
                     "features_range": {
                                         "x": [-100, 100],
                                         "y": [-100, 100],
@@ -30,6 +31,7 @@ class Highway(ObservationWrapper):
         self.env.unwrapped.config["duration"] = config["max_steps"]
         self.env.unwrapped.config["right_lane_reward"] = 0
         self.env.unwrapped.config['lanes_count'] = config["lane_count"]
+        self.env.unwrapped.config["vehicles_count"] = 50
         super().__init__(self.env)
         self.observation_space = gymnasium.spaces.Box(low=-np.inf, high=np.inf, shape=(np.prod(self.env.observation_space.shape) + 1,), dtype=np.float32)
         

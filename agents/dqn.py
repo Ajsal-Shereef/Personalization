@@ -44,13 +44,10 @@ class DQN(nn.Module):
         self.video_dir =  Network["video_save_path"]
         
         self.critic = Critic(self.input_dim, self.action_size, fc_hidden_size).to(device)
-        
         self.critic_target = Critic(self.input_dim, self.action_size, fc_hidden_size).to(device)
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=learning_rate)
-        
-        self.reset_all_parameters()
         
         #Buffer for storing the experience
         self.buffer = ReplayBuffer(buffer_size=self.buffer_size, batch_size=self.batch_size, device=device)
@@ -127,15 +124,6 @@ class DQN(nn.Module):
                 target_param.data.mul_(1 - self.tau)
                 torch.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
             
-    def reinitialize_weights(self, model):
-        for layer in model.modules():
-            if hasattr(layer, 'reset_parameters'):
-                layer.reset_parameters()
-                
-    def reset_all_parameters(self):
-        self.reinitialize_weights(self.critic.net)
-        self.critic_target.load_state_dict(self.critic.state_dict())
-            
     def do_post_episode_processing(self, steps_done):
         # Update epsilon at the end of each episode
         self.epsilon = self.epsilon_end + (self.epsilon_start - self.epsilon_end) * \
@@ -150,10 +138,7 @@ class DQN(nn.Module):
     def do_post_task_processing(self):
         self.buffer.clear()
         
-    def set_vision_models(self, model):
-        self.vision_model = model
-        
-    def test(self, env):
+    def test(self, env, fps):
         """Test the agent in the environment."""
         dump_dir = f"{self.video_dir}/{env.name}/{self.agent_name}"
         epsilon = self.epsilon
@@ -172,7 +157,7 @@ class DQN(nn.Module):
                 cumulative_reward += reward
                 state = next_state
             # write_video(frame_array, episode, dump_dir, frameSize=(env.unwrapped.get_frame().shape[1], env.unwrapped.get_frame().shape[0]))
-            save_gif(frame_array, episode, dump_dir, duration=400)
+            save_gif(frame_array, episode, dump_dir, fps=fps)
         self.epsilon = epsilon
         
     def load_params(self, path):
