@@ -27,13 +27,13 @@ def train(args: DictConfig) -> None:
         from env.highway import Highway
         env = Highway(args.env)
         #Initialisng the labeller
-        from Labeller.oracle import HumanOracleHighway
+        from labeller.oracle import HumanOracleHighway
         labeller = HumanOracleHighway(env, args.mode)
     elif args.env.name ==  "Pong":
         from env.pong import Pong
         env = Pong(args.env)
         #Initialisng the labeller
-        from Labeller.oracle import HumanOraclePong
+        from labeller.oracle import HumanOraclePong
         labeller = HumanOraclePong(env, args.mode)
     else:
         raise NotImplementedError("The environment is not implemented yet")
