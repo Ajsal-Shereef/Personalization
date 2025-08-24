@@ -26,6 +26,7 @@ class DQN(nn.Module):
         
         self.device = device
         
+        self.config = Network
         self.agent_name = Network["name"]
         self.input_dim = Network["input_dim"]
         self.action_size = Network["action_dim"]
@@ -42,6 +43,7 @@ class DQN(nn.Module):
         self.initial_random_samples = Network["initial_random_samples"]
         self.test_episodes = Network["test_episodes"]
         self.video_dir =  Network["video_save_path"]
+        self.hard_update = Network["hard_update"]
         
         self.critic = Critic(self.input_dim, self.action_size, fc_hidden_size).to(device)
         self.critic_target = Critic(self.input_dim, self.action_size, fc_hidden_size).to(device)
@@ -55,7 +57,7 @@ class DQN(nn.Module):
         #Action_space
         self.action_space = torch.tensor(range(self.action_size)).to(device)
         
-    def get_action(self, state, steps):
+    def get_action(self, state, steps=0):
         if random.random() < self.epsilon or steps < self.initial_random_samples:
             return random.randrange(self.action_size)
         else:
@@ -67,7 +69,7 @@ class DQN(nn.Module):
                 self.critic.train()
             return q.argmax().item()
     
-    def learn(self):
+    def learn(self, timstep):
         """
         DQN update rule
         """
@@ -88,7 +90,7 @@ class DQN(nn.Module):
             Q_target_next = Q_target_next.gather(1, next_actions)
 
             # Compute Q targets for current states (y_i)
-            Q_targets = rewards + (self.gamma * (1 - terminated) * Q_target_next) 
+            Q_targets = rewards + (self.gamma * (1 - done) * Q_target_next) 
 
         # Compute critic loss
         q = self.critic(states)
@@ -102,7 +104,11 @@ class DQN(nn.Module):
         self.critic_optimizer.step()
         
         # ----------------------- update target networks ----------------------- #
-        self.soft_update(self.critic, self.critic_target)
+        if not self.hard_update:
+            self.soft_update(self.critic, self.critic_target)
+        else:
+            if timstep % self.config["target_update_freequency"] == 0:
+                self.critic_target.load_state_dict(self.critic.state_dict())
         
         metric = {"Critic loss": critic_loss.item(), 
                   "epsilon" : self.epsilon}

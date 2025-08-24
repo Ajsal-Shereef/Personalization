@@ -8,10 +8,12 @@ Network:
   lr: 1e-4
   gamma : 0.99
   tau : 5e-3
+  hard_update : True
+  target_update_freequency : 1000
   initial_random_samples : 4000
   epsilon_start : 1.0
   epsilon_end : 0.01
-  epsilon_decay : 5000
+  epsilon_decay : 20000
   batch_size : 100
   buffer_size : 100000
   clip_grad_param : 10

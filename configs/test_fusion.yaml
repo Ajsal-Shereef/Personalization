@@ -1,0 +1,8 @@
+defaults:
+  - env : pong
+  - agent : dqn
+  - LSTM : lstm
+
+result_path : results
+action_selection_strategy : fusion
+test_episodes : 20

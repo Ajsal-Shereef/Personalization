@@ -13,8 +13,8 @@ from agents.agent_utils.trajectory_buffer import TrajectoryReplayBuffer
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def make_agent(env, cfg):
-    cfg.agent.Network.action_dim = int(env.action_space.n)
-    cfg.agent.Network.input_dim = int(env.observation_space.shape[0])
+    cfg.Network.action_dim = int(env.action_space.n)
+    cfg.Network.input_dim = int(env.observation_space.shape[0])
     return hydra.utils.instantiate(cfg)
 
 @hydra.main(version_base=None, config_path="configs", config_name="train_agent")
@@ -46,8 +46,8 @@ def train(args: DictConfig) -> None:
     print(f"[INFO] Using device: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}")
     
     #Make the agent
-    agent = make_agent(env, args)
-    agent = agent.agent.to(device)
+    agent = make_agent(env, args.agent)
+    agent = agent.to(device)
     
     model_dir = create_dump_directory(f"model_weights/{args.agent.Network.name}")
     print("[INFO] Dump dir: ", model_dir)
@@ -60,7 +60,6 @@ def train(args: DictConfig) -> None:
     trajectory_buffer = TrajectoryReplayBuffer(env.observation_space.shape[0], args.env.max_steps, int(np.floor(args.total_timestep/args.env.max_steps)), device)
     
     episode_states = []
-    episode_next_states = []
     episode_actions = []
     episode_labels = []
     env_total_steps = 0
@@ -78,12 +77,11 @@ def train(args: DictConfig) -> None:
         
         labeller.update_counts(info if args.env.name ==  "Highway" else state)
         episode_states.append(state)
-        episode_next_states.append(next_state)
         episode_actions.append(action)
         episode_labels.append(labeller.get_human_feedback(state))
         
         agent.add_transition_to_buffer((state, action, reward, next_state, terminated, truncated))
-        metric = agent.learn()
+        metric = agent.learn(env_total_steps)
         state = next_state
         cumulative_reward += reward
         env_total_steps += 1
@@ -101,10 +99,9 @@ def train(args: DictConfig) -> None:
             env_episode_steps = 0
             cumulative_reward = 0
             agent.do_post_episode_processing(env_total_steps)
-            trajectory_buffer.add((episode_states, episode_actions, episode_labels, episode_next_states))
+            trajectory_buffer.add((episode_states, episode_actions, episode_labels))
             labeller.reset_episode_count()
             episode_states = []
-            episode_next_states = []
             episode_actions = []
             episode_labels = []
 
@@ -113,7 +110,7 @@ def train(args: DictConfig) -> None:
         if i % args.save_every == 0:
             agent.save(f"{model_dir}/", save_name=f"{args.agent.Network.name}")
     #Saving the trajectory data
-    trajectory_buffer.save_buffer_data(f"{args.agent.Network.interaction_data_path}/{args.env.name}/{args.mode}", mode=args.mode)
+    trajectory_buffer.save_buffer_data(f"{args.agent.Network.interaction_data_path}/{args.env.name}/{args.mode}")
     agent.eval()
     agent.test(env, args.env.fps)
     #Saving the model

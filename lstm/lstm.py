@@ -49,6 +49,18 @@ class LSTM(nn.Module):
         q_estimate = self.aux_lstm_linear_layer(lstm_input.view(B*T, -1)).view(B,T)
         return q_values, q_estimate
     
+    def get_action(self, state):
+        self.eval()
+        max_action = 0
+        max_q_value = -float('inf')
+        for action in range(self.n_action):
+            action = torch.tensor(action).float().to(device)
+            q_value, _ = self(state.unsqueeze(dim=0).unsqueeze(dim=0), action.unsqueeze(dim=0))
+            if max_q_value < q_value.item():
+                max_q_value = q_value.item()
+                max_action = action.item()
+        return max_action
+        
     def calculate_main_loss(self, q, label, length):
         label_ = label.unsqueeze(-1).repeat(1, q.size(1))
         all_timestep_loss = F.mse_loss(q, label_, reduction = 'none')
@@ -70,7 +82,7 @@ class LSTM(nn.Module):
         #Multiplying with the self.mask to avoid the padded sequence
         all_timestep_loss = all_timestep_loss * self.mask
 
-        # Average for each sequence
+        # Average for each sequenace
         self.mean_all_timestep_loss_along_sequence = all_timestep_loss.sum(1) / self.mask.sum(1)
     
         return self.mean_all_timestep_loss_along_sequence

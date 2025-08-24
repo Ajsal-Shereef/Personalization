@@ -17,9 +17,9 @@ class HumanOracleHighway():
     def get_human_feedback(self, observation = None):
         vehicle = self.env.unwrapped.vehicle
         lane = vehicle.lane_index[-1]
-        if lane == 2:
+        if lane == 2 and (self.mode == "preference" or self.mode == "both"):
             return 1
-        if lane == 0:
+        if lane == 0 and (self.mode == "avoid" or self.mode == "both"):
             return -1
         return 0
     
@@ -68,16 +68,11 @@ class HumanOraclePong():
             return -self.episode_avoid_region + self.episode_prefered_region
         
     def get_human_feedback(self, observation):
-        if self.mode == 'avoid':
+        if self.mode == 'avoid' or self.mode == 'both':
             if 0<=observation[0]<=7 or 41<=observation[0]<=48:
                 return -1
-        elif self.mode == 'preference':
+        elif self.mode == 'preference' or self.mode == 'both':
             if 16<observation[0]<=31:
-                return 1
-        elif self.mode == 'both':
-            if 0<=observation[0]<=7 or 41<=observation[0]<=48:
-                return -1
-            elif 16<observation[0]<=31:
                 return 1
         return 0
     

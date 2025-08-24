@@ -143,6 +143,30 @@ def custom_action_encoding(action_tensor: torch.Tensor, num_actions: int, dim: i
         encoded_tensor += update_values
         
     return encoded_tensor
+
+def Boltzmann(q_values, T):
+    """
+    Computes the Boltzmann distribution over a set of Q-values.
+
+    Args:
+        q_values (np.ndarray): A numpy array of Q-values.
+        T (float): The temperature parameter.
+
+    Returns:
+        np.ndarray: A probability distribution over the actions.
+    """
+    # Ensure T is not zero to avoid division by zero
+    if T == 0:
+        raise ValueError("Temperature can't be zero")
+    
+    # Subtracting the max Q-value for numerical stability to prevent overflow
+    q_values = q_values - np.max(q_values)
+    
+    # Calculate the exponential of the Q-values divided by the temperature
+    exp_values = np.exp(q_values / T)
+    
+    # Normalize to get the probability distribution
+    return exp_values / np.sum(exp_values)
     
 def get_activation(activation):
     # initialize activation

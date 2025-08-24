@@ -13,7 +13,6 @@ class TrajectoryReplayBuffer:
 
     def reset_buffer(self, size):
         self.states_buffer = np.zeros(shape=(size, self.max_time, self.feature_size), dtype=np.float32)
-        self.next_states_buffer = np.zeros(shape=(size, self.max_time, self.feature_size), dtype=np.float32)
         self.actions_buffer = np.zeros(shape=(size, self.max_time), dtype=np.float32)
         self.label_buffer = np.zeros(shape=(size, self.max_time), dtype=np.float32)
         self.lens_buffer = np.zeros(shape=(size,), dtype=np.int32)
@@ -30,12 +29,11 @@ class TrajectoryReplayBuffer:
 
     # Add a new episode to the buffer
     def add(self, trajectory):
-        previous_state, actions, label, next_state = trajectory
+        previous_state, actions, label = trajectory
         traj_length = len(previous_state)
         
         idx = self.next_ind
         self.states_buffer[idx, :traj_length] = previous_state
-        self.next_states_buffer[idx, :traj_length] = next_state
         self.actions_buffer[idx, :traj_length] = actions
         self.label_buffer[idx, :traj_length] = label
         self.lens_buffer[idx] = traj_length
@@ -48,16 +46,14 @@ class TrajectoryReplayBuffer:
         indices = np.random.choice(range(min(self.num_trajectories, self.size)), size=batch_size)
 
         states = torch.from_numpy(self.states_buffer[indices]).to(self.device)
-        next_states = torch.from_numpy(self.next_states_buffer[indices]).to(self.device)
         actions = torch.from_numpy(self.actions_buffer[indices]).to(self.device)
         rewards = torch.from_numpy(self.label_buffer[indices]).to(self.device)
         lengths = torch.from_numpy(self.lens_buffer[indices]).to(self.device)
         indices = torch.from_numpy(indices).to(self.device)
 
-        return states, next_states, actions, rewards, lengths, indices
+        return states, actions, rewards, lengths, indices
     
-    def save_buffer_data(self, dump_dir, mode):
-        save_dir = os.path.join(dump_dir, mode)
+    def save_buffer_data(self, save_dir):
         os.makedirs(save_dir, exist_ok=True)
 
         N = self.num_trajectories   # how many trajectories are filled
@@ -67,7 +63,7 @@ class TrajectoryReplayBuffer:
         np.save(os.path.join(save_dir, "lens_buffer.npy"), self.lens_buffer[:N], allow_pickle=True)
         np.save(os.path.join(save_dir, "labels_buffer.npy"), self.label_buffer[:N], allow_pickle=True)
 
-        print(f"[INFO] Trajectory buffer with {N} trajectories saved to {dump_dir}")
+        print(f"[INFO] Trajectory buffer with {N} trajectories saved to {save_dir}")
         
     def __len__(self):
         return min(self.num_trajectories, self.size)

@@ -1,10 +1,9 @@
 defaults:
-  - env : highway
+  - env : pong
   - LSTM : lstm
-  - agents : dqn
 
 epochs : 2000
-use_wandb : True
+use_wandb : False
 mode : preference
 datapath : data
 save_every : 10

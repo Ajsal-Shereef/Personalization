@@ -13,7 +13,7 @@ class Highway(ObservationWrapper):
         env_config = {
                     "observation": {
                     "type": "Kinematics",
-                    "vehicles_count": 5,
+                    "vehicles_count":config["vehicles_count"],
                     "features": ["presence", "x", "y", "vx", "vy"],
                     "collision_reward": -1,
                     "features_range": {
@@ -31,9 +31,8 @@ class Highway(ObservationWrapper):
         self.env.unwrapped.config["duration"] = config["max_steps"]
         self.env.unwrapped.config["right_lane_reward"] = 0
         self.env.unwrapped.config['lanes_count'] = config["lane_count"]
-        self.env.unwrapped.config["vehicles_count"] = 50
         super().__init__(self.env)
-        self.observation_space = gymnasium.spaces.Box(low=-np.inf, high=np.inf, shape=(np.prod(self.env.observation_space.shape) + 1,), dtype=np.float32)
+        self.observation_space = gymnasium.spaces.Box(low=-np.inf, high=np.inf, shape=(config["vehicles_count"]*5 + 1,), dtype=np.float32)
         
     def step(self, action):
         next_state, reward, terminated, truncated, info = self.env.step(action)
