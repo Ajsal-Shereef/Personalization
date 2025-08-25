@@ -55,7 +55,7 @@ class LSTM(nn.Module):
         max_q_value = -float('inf')
         for action in range(self.n_action):
             action = torch.tensor(action).float().to(device)
-            q_value, _ = self(state.unsqueeze(dim=0).unsqueeze(dim=0), action.unsqueeze(dim=0))
+            q_value, _ = self(state.unsqueeze(dim=0), action.unsqueeze(dim=0).unsqueeze(dim=0))
             if max_q_value < q_value.item():
                 max_q_value = q_value.item()
                 max_action = action.item()
@@ -120,7 +120,7 @@ class LSTM(nn.Module):
     
     def load_params(self, path):
         """Load model and optimizer parameters."""
-        params = torch.load(path, map_location=device, weights_only=True)
+        params = torch.load(path + "LSTM.tar", map_location=device, weights_only=True)
         self.film.load_state_dict(params["film"])
         self.lstm_layer.load_state_dict(params["lstm_layer"])
         self.post_lstm_linear_layer.load_state_dict(params["post_lstm_linear_layer"])

@@ -73,8 +73,8 @@ def train(args: DictConfig) -> None:
     for i in range(1, args.total_timestep+1):
         action = agent.get_action(state, env_total_steps)
         next_state, reward, terminated, truncated, info = env.step(action)
-        done = terminated + truncated
-        
+        done = terminated or truncated
+
         labeller.update_counts(info if args.env.name ==  "Highway" else state)
         episode_states.append(state)
         episode_actions.append(action)

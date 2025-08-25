@@ -50,6 +50,8 @@ def train(args: DictConfig) -> None:
     with open(f"{args.datapath}/{args.env.name}/{args.mode}/labels_buffer.npy", "rb") as f:
         labels = np.load(f)
         
+    print(f"[INFO] {len(states)} Data loaded")
+        
     #Creating the dataset and dataloader
     dataset = LSTMDataset([states, actions, lengths, labels])
     dataloader = DataLoader(dataset, batch_size=args.LSTM.Network.batch_size, shuffle=True)

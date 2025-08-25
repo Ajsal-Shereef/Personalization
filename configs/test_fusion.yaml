@@ -1,8 +1,8 @@
 defaults:
-  - env : pong
+  - env : highway
   - agent : dqn
   - LSTM : lstm
 
 result_path : results
-action_selection_strategy : fusion
+action_selection_strategy : lstm
 test_episodes : 20

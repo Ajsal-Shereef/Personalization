@@ -168,7 +168,7 @@ class DQN(nn.Module):
         
     def load_params(self, path):
         """Load model and optimizer parameters."""
-        params = torch.load(path, map_location=device, weights_only=True)
+        params = torch.load(path + "DQN.tar", map_location=device, weights_only=True)
         self.critic.load_state_dict(params["critic"])
         self.critic_target.load_state_dict(self.critic.state_dict())
         self.critic_optimizer.load_state_dict(params["critic_optim"])

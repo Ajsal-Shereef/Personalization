@@ -1,9 +1,9 @@
 defaults:
-  - env : pong
+  - env : highway
   - LSTM : lstm
 
-epochs : 2000
+epochs : 30000
 use_wandb : False
 mode : preference
 datapath : data
-save_every : 10
+save_every : 10000

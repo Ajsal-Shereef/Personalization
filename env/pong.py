@@ -1,11 +1,11 @@
-import gym
-from gym import spaces
+import gymnasium
+from gymnasium import spaces
 from ple.games.pong import Pong as PLEPong
 from ple import PLE
 import numpy as np
 
 
-class Pong(gym.Env):
+class Pong(gymnasium.Env):
     def __init__(self, config):
         super().__init__()
         self.name = "Pong"
@@ -47,28 +47,28 @@ class Pong(gym.Env):
 
     def step(self, action):
         reward = self.env.act(self.action_set[action])
+        # reward = self.env._getReward()
         obs = self._get_obs()
-
+    
         # Reward shaping
         if reward == -6:
-            reward = 0
+            reward = -1
         elif reward == 6:
             reward = 1
 
         self.episode_step += 1
-        self.done = self.env.game_over()
-        truncated = self.is_episode_done()
+
+        truncated = self.episode_step >= self.max_steps
 
         if truncated:
             reward = 0.5
 
-        return obs, reward, self.done, truncated, {}
+        return obs, reward, self.env.game_over(), truncated, {}
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
         self.env.reset_game()
         self.episode_step = 0
-        self.done = False
         obs = self._get_obs()
         return obs, {}
 

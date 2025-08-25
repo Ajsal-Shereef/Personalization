@@ -1,7 +1,7 @@
 defaults:
-  - env : highway
+  - env : pong
   - agent : dqn
-total_timestep : 1500
+total_timestep : 1000000
 save_every : 10000
 mode : preference
 use_wandb : False
