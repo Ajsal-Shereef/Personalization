@@ -38,7 +38,7 @@ def test(args: DictConfig) -> None:
     else:
         raise NotImplementedError("The environment is not implemented yet")
     
-    print("[INFO] Agent name: ", args.agent.Network.name)
+    print("[INFO] Strategy: ", args.action_selection_strategy)
     print("[INFO] Env:", args.env.name)
     print(f"[INFO] Using device: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}")
     
@@ -88,7 +88,8 @@ def test(args: DictConfig) -> None:
         if args.action_selection_strategy == "dqn":
             return agent.get_action(state)
         elif args.action_selection_strategy == "lstm":
-            return model.get_action(state)
+            legal_action = env.get_legal_actions()
+            return model.get_action(state, legal_action)
         else:
             # 1. Get Q-values from the task-specific DQN agent
             dqn_q_values = agent.critic(state).squeeze()

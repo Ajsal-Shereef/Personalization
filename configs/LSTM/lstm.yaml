@@ -14,4 +14,4 @@ Network:
   plot_internals : True
   gradient_clipping : 10
 Test:
-  checkpoint : model_weights/LSTM/2025-08-24_20-00-55_P3KSTF/
+  checkpoint : model_weights/LSTM/2025-08-25_19-39-11_HWDTZQ/

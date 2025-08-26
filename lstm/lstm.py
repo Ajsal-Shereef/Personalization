@@ -49,11 +49,13 @@ class LSTM(nn.Module):
         q_estimate = self.aux_lstm_linear_layer(lstm_input.view(B*T, -1)).view(B,T)
         return q_values, q_estimate
     
-    def get_action(self, state):
+    def get_action(self, state, legal_actions):
         self.eval()
         max_action = 0
         max_q_value = -float('inf')
         for action in range(self.n_action):
+            if action not in legal_actions:
+                continue
             action = torch.tensor(action).float().to(device)
             q_value, _ = self(state.unsqueeze(dim=0), action.unsqueeze(dim=0).unsqueeze(dim=0))
             if max_q_value < q_value.item():
@@ -62,17 +64,15 @@ class LSTM(nn.Module):
         return max_action
         
     def calculate_main_loss(self, q, label, length):
-        label_ = label.unsqueeze(-1).repeat(1, q.size(1))
-        all_timestep_loss = F.mse_loss(q, label_, reduction = 'none')
-        len = length[:] - 1
-        all_timestep_loss_indexed = all_timestep_loss[range(q.size(0)), len]
+        all_timestep_loss = F.mse_loss(q, label.unsqueeze(-1), reduction = 'none')
+        seq_len = length[:] - 1
+        all_timestep_loss_indexed = all_timestep_loss[range(q.size(0)), seq_len]
         return all_timestep_loss_indexed
     
-    def calculate_aux_loss(self, q, label, length):#, pred_q):
+    def calculate_aux_loss(self, q, label, length):
 
         # B x L
-        label_ = label.unsqueeze(-1).repeat(1, q.size(1))
-        all_timestep_loss = F.mse_loss(q, label_, reduction = 'none')
+        all_timestep_loss = F.mse_loss(q, label.unsqueeze(-1), reduction = 'none')
             
         # Create the mask
         self.mask = torch.zeros_like(all_timestep_loss)
@@ -105,6 +105,7 @@ class LSTM(nn.Module):
         aux_loss = self.calculate_aux_loss(q_values, labels, lengths).mean()
         q_estimate_loss = self.q_estimate_loss(q_values, q_estimate).mean()
         loss = main_loss + self.aux_loss_weight*(aux_loss + q_estimate_loss)
+        # loss = main_loss + self.aux_loss_weight*aux_loss
         
         #Optimization
         self.optimizer.zero_grad()
@@ -120,7 +121,7 @@ class LSTM(nn.Module):
     
     def load_params(self, path):
         """Load model and optimizer parameters."""
-        params = torch.load(path + "LSTM.tar", map_location=device, weights_only=True)
+        params = torch.load(path + "LSTM.tar", map_location=device)
         self.film.load_state_dict(params["film"])
         self.lstm_layer.load_state_dict(params["lstm_layer"])
         self.post_lstm_linear_layer.load_state_dict(params["post_lstm_linear_layer"])
@@ -136,8 +137,7 @@ class LSTM(nn.Module):
                 "aux_lstm_linear_layer" : self.aux_lstm_linear_layer.state_dict()
                 }
         save_dir = dump_dir
-        if not os.path.exists(save_dir):
-            os.mkdir(save_dir)
+        os.makedirs(save_dir, exist_ok=True)
         checkpoint_path = save_dir + save_name + '.tar'
         torch.save(params, checkpoint_path)
         print("[INFO] LSTM model saved to: ", checkpoint_path)

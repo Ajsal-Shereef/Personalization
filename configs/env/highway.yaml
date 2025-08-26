@@ -3,7 +3,7 @@ max_steps : 50
 lane_count : 4
 snip_trajectory : False
 snip_trajectory_window : None
-vehicles_count : 10
+vehicles_count : 5
 fps : 2.5
 
 Fusion:

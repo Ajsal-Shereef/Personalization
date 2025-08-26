@@ -13,9 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def make_model(env, cfg):
-    cfg.Network.n_actions = int(env.action_space.n)
-    cfg.Network.feature_size = int(env.observation_space.shape[0])
+def make_model(cfg):
     return hydra.utils.instantiate(cfg)
 
 @hydra.main(version_base=None, config_path="configs", config_name="train_lstm")
@@ -30,15 +28,18 @@ def train(args: DictConfig) -> None:
     else:
         raise NotImplementedError("The environment is not implemented yet")
     
+    #Make the model
+    args.LSTM.Network.n_actions = int(env.action_space.n)
+    args.LSTM.Network.feature_size = int(env.observation_space.shape[0])
+    model = make_model(args.LSTM)
+    model = model.to(device)
+    
     if args.use_wandb:
         wandb.init(project="Project 1", name=f"{args.LSTM.Network.name}_{args.env.name}", config=OmegaConf.to_container(args, resolve=True))
+        wandb.watch(model)
     print("[INFO] Model name: ", args.LSTM.Network.name)
     print("[INFO] Env:", args.env.name)
     print(f"[INFO] Using device: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}")
-    
-    #Make the model
-    model = make_model(env, args.LSTM)
-    model = model.to(device)
     
     #Loading the datasets to the memory
     with open(f"{args.datapath}/{args.env.name}/{args.mode}/states_buffer.npy", "rb") as f:

@@ -12,9 +12,7 @@ from agents.agent_utils.trajectory_buffer import TrajectoryReplayBuffer
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def make_agent(env, cfg):
-    cfg.Network.action_dim = int(env.action_space.n)
-    cfg.Network.input_dim = int(env.observation_space.shape[0])
+def make_agent(cfg):
     return hydra.utils.instantiate(cfg)
 
 @hydra.main(version_base=None, config_path="configs", config_name="train_agent")
@@ -46,6 +44,8 @@ def train(args: DictConfig) -> None:
     print(f"[INFO] Using device: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}")
     
     #Make the agent
+    args.agent.Network.action_dim = int(env.action_space.n)
+    args.agent.Network.input_dim = int(env.observation_space.shape[0])
     agent = make_agent(env, args.agent)
     agent = agent.to(device)
     
@@ -67,7 +67,6 @@ def train(args: DictConfig) -> None:
     env_episodes = 0
     agent.do_pre_task_proceessing()   
     state, info = env.reset()
-    labeller.update_counts(info if args.env.name ==  "Highway" else state)
     cumulative_reward = 0
     average_episodic_return = deque(maxlen=10)
     for i in range(1, args.total_timestep+1):
@@ -75,7 +74,6 @@ def train(args: DictConfig) -> None:
         next_state, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
 
-        labeller.update_counts(info if args.env.name ==  "Highway" else state)
         episode_states.append(state)
         episode_actions.append(action)
         episode_labels.append(labeller.get_human_feedback(state))
@@ -100,7 +98,6 @@ def train(args: DictConfig) -> None:
             cumulative_reward = 0
             agent.do_post_episode_processing(env_total_steps)
             trajectory_buffer.add((episode_states, episode_actions, episode_labels))
-            labeller.reset_episode_count()
             episode_states = []
             episode_actions = []
             episode_labels = []

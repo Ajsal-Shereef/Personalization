@@ -2,7 +2,7 @@ defaults:
   - env : highway
   - LSTM : lstm
 
-epochs : 30000
+epochs : 100000
 use_wandb : False
 mode : preference
 datapath : data

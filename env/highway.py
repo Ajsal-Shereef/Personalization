@@ -9,6 +9,7 @@ class Highway(ObservationWrapper):
     "This class creates the Highway environment with a specified number of lanes and maximum steps."
     def __init__(self, config):
         self.env = gymnasium.make('highway-fast-v0', render_mode="rgb_array")
+        self.config = config
         self.name = "Highway"
         env_config = {
                     "observation": {
@@ -48,5 +49,14 @@ class Highway(ObservationWrapper):
     
     def get_frame(self):
         return self.env.render()
-        
+    
+    def get_legal_actions(self):
+        vehicle = self.env.unwrapped.vehicle
+        lane = vehicle.lane_index[-1]
+        if lane == 0:
+            return [1,2,3,4]
+        elif lane == self.config["lane_count"]-1:
+            return [0,1,3,4]
+        else:
+            return [0,1,2,3,4]
     
