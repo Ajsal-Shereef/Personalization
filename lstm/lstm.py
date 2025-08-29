@@ -5,7 +5,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from architectures.mlp import MLP, FiLM
 from widis_lstm_tools.nn import LSTMLayer
-from architectures.common_utils import custom_action_encoding
+import torch.optim.lr_scheduler as lr_scheduler
+from architectures.common_utils import custom_action_encoding, get_scheduler
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -39,6 +40,13 @@ class LSTM(nn.Module):
                                     weight_decay=Network["l2_regularization"],
                                     eps=Network["adam_eps"],
                                     )
+        
+        #Scheduler
+        sched_cfg = Network.get("scheduler", None).get("type", None)
+        if sched_cfg:
+            self.scheduler = get_scheduler(Network.get("scheduler", None), self.optimizer, Network["lr"])
+        else:
+            self.scheduler = None
     
     def forward(self, states, action):
         action_embedding = custom_action_encoding(action, self.n_action, self.action_encoding_dim)
@@ -50,18 +58,20 @@ class LSTM(nn.Module):
         return q_values, q_estimate
     
     def get_action(self, state, legal_actions):
-        self.eval()
-        max_action = 0
-        max_q_value = -float('inf')
-        for action in range(self.n_action):
-            if action not in legal_actions:
-                continue
-            action = torch.tensor(action).float().to(device)
-            q_value, _ = self(state.unsqueeze(dim=0), action.unsqueeze(dim=0).unsqueeze(dim=0))
-            if max_q_value < q_value.item():
-                max_q_value = q_value.item()
-                max_action = action.item()
-        return max_action
+        state = state.unsqueeze(0).to(device)  # add batch dim
+        best_action, best_q = None, -float("inf")
+
+        with torch.no_grad():
+            for a in legal_actions:
+                a_tensor = torch.tensor([[a]], dtype=torch.float32, device=device)
+                q_value, _ = self(state, a_tensor)
+                q_value = q_value.item()
+                if q_value > best_q:
+                    best_q, best_action = q_value, a
+
+        if best_action is None:
+            raise ValueError("No legal actions available!")
+        return int(best_action)
         
     def calculate_main_loss(self, q, label, length):
         all_timestep_loss = F.mse_loss(q, label.unsqueeze(-1), reduction = 'none')
@@ -95,10 +105,10 @@ class LSTM(nn.Module):
         return loss
     
     def learn(self, data):
-        states = data[0].to(device)
-        actions = data[1].to(device)
-        lengths = data[2].to(device)
-        labels = data[3].to(device)
+        states = data[0]
+        actions = data[1]
+        lengths = data[2]
+        labels = data[3]
         
         q_values, q_estimate = self(states, actions)
         main_loss = self.calculate_main_loss(q_values, labels, lengths).mean()
@@ -110,13 +120,24 @@ class LSTM(nn.Module):
         #Optimization
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.parameters(), self.gradient_clipping)
+        # torch.nn.utils.clip_grad_norm_(self.parameters(), self.gradient_clipping)
         self.optimizer.step()
+        
+        # Step scheduler
+        if self.scheduler is not None:
+            if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
+                self.scheduler.step(loss.item())  # needs validation metric
+            else:
+                self.scheduler.step()
+        
+        # Current LR
+        current_lr = self.optimizer.param_groups[0]["lr"]
         
         metrics = {"Main loss" : main_loss.item(),
                    "Aux loss" : aux_loss.item(),
                    "Q estimate loss" : q_estimate_loss.item(),
-                   "Loss" : loss.item()}
+                   "Loss" : loss.item(),
+                   "LR": current_lr}
         return metrics
     
     def load_params(self, path):

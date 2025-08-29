@@ -5,13 +5,19 @@ Network:
   feature_size : ???
   n_actions : ???
   n_units : 64
-  lr : 0.0001
+  lr : 0.001
   l2_regularization : 1.0e-6
   adam_eps : 0.000001
-  batch_size : 300
+  batch_size : 20000
   q_estimate_loss_window : 3
   aux_loss_weight : 0.10
   plot_internals : True
   gradient_clipping : 10
+  scheduler:
+    type: null
+    mode: min
+    factor: 0.9
+    patience: 30
+    min_lr : 1e-5
 Test:
-  checkpoint : model_weights/LSTM/2025-08-25_19-39-11_HWDTZQ/
+  checkpoint : model_weights/LSTM/2025-08-28_21-45-36_3Y0S8N/

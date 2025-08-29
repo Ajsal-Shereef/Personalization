@@ -91,6 +91,7 @@ def test(args: DictConfig) -> None:
             legal_action = env.get_legal_actions()
             return model.get_action(state, legal_action)
         else:
+            legal_action = env.get_legal_actions()
             # 1. Get Q-values from the task-specific DQN agent
             dqn_q_values = agent.critic(state).squeeze()
             task_specific_policy = Boltzmann(dqn_q_values.detach().cpu().numpy(), args.env.Fusion.T_phi).squeeze()
@@ -105,7 +106,10 @@ def test(args: DictConfig) -> None:
             # 3. Fuse policies and select the best action
             #Original paper describe the argmax operation on square root of the product. However, it is equivalent to argmax on the product itself.
             fused_policy = task_specific_policy * intent_specific_policy
-            action = np.argmax(fused_policy)
+            for a in reversed(np.argsort(fused_policy)):
+                if a in legal_action:
+                    action = a
+                    break
             return action, lstm_q_values
             
     dump_dir = f"{args.result_path}/{env.name}/{args.action_selection_strategy}"

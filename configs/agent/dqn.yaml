@@ -15,10 +15,11 @@ Network:
   epsilon_end : 0.01
   epsilon_decay : 20000
   batch_size : 100
-  buffer_size : 100000
+  buffer_size : 200000
   clip_grad_param : 10
   test_episodes : 10
+  batch_norm : True
   video_save_path : results
   interaction_data_path : data
 Test: 
-  checkpoint : model_weights/DQN/2025-08-24_14-50-44_X9FR9V/
+  checkpoint : model_weights/DQN/2025-08-28_19-25-46_LJ17PW/

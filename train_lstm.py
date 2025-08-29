@@ -54,7 +54,7 @@ def train(args: DictConfig) -> None:
     print(f"[INFO] {len(states)} Data loaded")
         
     #Creating the dataset and dataloader
-    dataset = LSTMDataset([states, actions, lengths, labels])
+    dataset = LSTMDataset([states, actions, lengths, labels], device)
     dataloader = DataLoader(dataset, batch_size=args.LSTM.Network.batch_size, shuffle=True)
     
     #Creating the model save dir

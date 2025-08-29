@@ -4,6 +4,20 @@ This project implements the methodology described in the paper "Dynamic Policy F
 
 The core idea is to fuse a **task-specific policy** (learned by a standard RL agent like DQN) with an **intent-specific policy** (inferred from user feedback via an LSTM). The fusion is done dynamically to ensure the agent accomplishes its primary task while also adhering to the user's preferences.
 
+## Results
+
+The grid below showcases the behavior of the agent under three different policies across various environments.
+* **DQN**: The agent follows the base policy, which is trained to maximize the task reward only.
+* **LSTM**: The agent follows the intent-only policy, which may not be optimal for the main task.
+* **Fusion**: The agent uses the dynamic fusion policy, balancing task completion with user preferences.
+
+| DQN | LSTM | Fusion |
+| :---: | :---: | :---: |
+| ![DQN Result 1](Results/Highway/dqn.gif) | ![LSTM Result 1](Results/Highway/lstm.gif) | ![Fusion Result 1](Results/Highway/fusion.gif) |
+<!-- | ![DQN Result 2](Results/dqn_2.gif) | ![LSTM Result 2](Results/lstm_2.gif) | ![Fusion Result 2](Results/fusion_2.gif) |
+| ![DQN Result 3](Results/dqn_3.gif) | ![LSTM Result 3](Results/lstm_3.gif) | ![Fusion Result 3](Results/fusion_3.gif) | -->
+
+
 ## How it Works
 
 1.  **Task-Specific Agent**: A standard DQN agent is trained to master a task (e.g., win at Pong, navigate a highway). Its learned policy is focused purely on maximizing the task reward.

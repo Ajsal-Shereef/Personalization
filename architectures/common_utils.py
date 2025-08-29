@@ -15,6 +15,7 @@ from itertools import zip_longest
 from sklearn.manifold import TSNE
 from collections.abc import Iterable
 from torchvision.utils import make_grid
+import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.data import Dataset, DataLoader
 from torchvision.models import vgg16, VGG16_Weights
 
@@ -192,11 +193,11 @@ def get_activation(activation):
         assert 0, "Unsupported activation: {}".format(activation)
  
 class LSTMDataset(Dataset):
-    def __init__(self, data):
-        self.states = torch.tensor(data[0], dtype=torch.float32)
-        self.actions = torch.tensor(data[1], dtype=torch.float32)
-        self.lengths = torch.tensor(data[2], dtype=torch.int32)
-        self.labels = torch.tensor(data[3], dtype=torch.float32)
+    def __init__(self, data, device):
+        self.states = torch.tensor(data[0], dtype=torch.float32).to(device)
+        self.actions = torch.tensor(data[1], dtype=torch.float32).to(device)
+        self.lengths = torch.tensor(data[2], dtype=torch.int32).to(device)
+        self.labels = torch.tensor(data[3], dtype=torch.float32).to(device)
 
     def __len__(self):
         return len(self.states)
@@ -223,6 +224,43 @@ def collect_random(env, dataset, num_samples=200):
             episode + 1
             state, info = env.reset()
     return episode
+
+def get_scheduler(sched_cfg, optimizer, lr):
+    sched_type = sched_cfg.get("type", "").lower()
+    if sched_type == "steplr":
+        return lr_scheduler.StepLR(
+            optimizer,
+            step_size=sched_cfg.get("step_size", 10),
+            gamma=sched_cfg.get("gamma", 0.1)
+        )
+    elif sched_type == "exponentiallr":
+        return lr_scheduler.ExponentialLR(
+            optimizer,
+            gamma=sched_cfg.get("gamma", 0.95)
+        )
+    elif sched_type == "cosineannealinglr":
+        return lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=sched_cfg.get("t_max", 50)
+        )
+    elif sched_type == "reducelronplateau":
+        return lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode=sched_cfg.get("mode", "min"),
+            factor=sched_cfg.get("factor", 0.1),
+            patience=sched_cfg.get("patience", 10),
+            min_lr=sched_cfg.get("min_lr", 1e-5)
+        )
+    elif sched_type == "onecyclelr":
+        return lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=sched_cfg.get("max_lr", lr*10),
+            steps_per_epoch=sched_cfg.get("steps_per_epoch", 100),
+            epochs=sched_cfg.get("epochs", 10)
+        )
+    else:
+        print(f"[Info] Unknown scheduler type: {sched_type}, skipping scheduler init.")
+        return None
             
 def create_dump_directory(path):
     str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))

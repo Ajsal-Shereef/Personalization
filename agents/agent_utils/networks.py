@@ -73,7 +73,7 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, input_dim, action_size, hidden_size=32):
+    def __init__(self, input_dim, action_size, hidden_size=32, batch_norm=False):
         """Initialize parameters and build model.
         Params
         ======
@@ -83,7 +83,7 @@ class Critic(nn.Module):
             hidden_size (int): Number of nodes in the network layers
         """
         super(Critic, self).__init__()
-        self.net = MLP(input_dim, action_size, hidden_size)
+        self.net = MLP(input_dim, action_size, hidden_size, batch_norm=batch_norm)
         # self.reset_parameters()
 
     def reset_parameters(self):

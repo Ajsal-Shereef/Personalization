@@ -10,6 +10,7 @@ class TrajectoryReplayBuffer:
         # Initializing the list to store the transitions
         self.reset_buffer(self.size)
         self.device = device
+        self.full = False
 
     def reset_buffer(self, size):
         self.states_buffer = np.zeros(shape=(size, self.max_time, self.feature_size), dtype=np.float32)
@@ -29,6 +30,10 @@ class TrajectoryReplayBuffer:
 
     # Add a new episode to the buffer
     def add(self, trajectory):
+        # If the buffer is full, do not add the new trajectory and just return.
+        if self.num_trajectories >= self.size:
+            self.full = True
+            return
         previous_state, actions, label = trajectory
         traj_length = len(previous_state)
         

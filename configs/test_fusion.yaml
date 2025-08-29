@@ -4,5 +4,5 @@ defaults:
   - LSTM : lstm
 
 result_path : results
-action_selection_strategy : lstm
+action_selection_strategy : fusion
 test_episodes : 20

@@ -91,7 +91,8 @@ class MLP(nn.Module):
         n_category=-1,
         init_fn=init_layer_orthogonal,
         dropout_prob = 0,
-        stabilise_factor = 0
+        stabilise_factor = 0,
+        batch_norm = False
     ):
         """
         Initialize.
@@ -122,7 +123,7 @@ class MLP(nn.Module):
         in_size = self.input_size
         self.hidden_layers = nn.Sequential()
         for i, next_size in enumerate(hidden_sizes):
-            fc = Linear(in_size, next_size, post_activation = self.hidden_activation, dropout_prob = dropout_prob)
+            fc = Linear(in_size, next_size, post_activation = self.hidden_activation, dropout_prob = dropout_prob, batch_norm = batch_norm)
             in_size = next_size
             self.hidden_layers.add_module("hidden_fc_{}".format(i),fc)
 
@@ -198,11 +199,13 @@ class Linear(nn.Module):
         out_dim,
         post_activation = identity,
         dropout_prob = 0,
+        batch_norm = False
         ):
         super(Linear, self).__init__()
-
+        self.batch_norm = batch_norm
         self.linear_layer = nn.Linear(in_dim, out_dim)
-        self.batch_norm = nn.BatchNorm1d(out_dim)
+        if batch_norm:
+            self.batch_norm = nn.BatchNorm1d(out_dim)
         nn.init.orthogonal_(self.linear_layer.weight)
         self.dropout_layer = nn.Dropout(dropout_prob)
         self.post_activation = post_activation
@@ -214,7 +217,8 @@ class Linear(nn.Module):
         :return: torch.Tensor
         """
         x = self.linear_layer(x)
-        x = self.batch_norm(x)
+        if self.batch_norm:
+            x = self.batch_norm(x)
         x = self.dropout_layer(x)
         x = self.post_activation(x)
         return x    

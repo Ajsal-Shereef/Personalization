@@ -45,8 +45,8 @@ class DQN(nn.Module):
         self.video_dir =  Network["video_save_path"]
         self.hard_update = Network["hard_update"]
         
-        self.critic = Critic(self.input_dim, self.action_size, fc_hidden_size).to(device)
-        self.critic_target = Critic(self.input_dim, self.action_size, fc_hidden_size).to(device)
+        self.critic = Critic(self.input_dim, self.action_size, fc_hidden_size, Network["batch_norm"]).to(device)
+        self.critic_target = Critic(self.input_dim, self.action_size, fc_hidden_size, Network["batch_norm"]).to(device)
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=learning_rate)

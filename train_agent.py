@@ -46,7 +46,7 @@ def train(args: DictConfig) -> None:
     #Make the agent
     args.agent.Network.action_dim = int(env.action_space.n)
     args.agent.Network.input_dim = int(env.observation_space.shape[0])
-    agent = make_agent(env, args.agent)
+    agent = make_agent(args.agent)
     agent = agent.to(device)
     
     model_dir = create_dump_directory(f"model_weights/{args.agent.Network.name}")
@@ -57,7 +57,7 @@ def train(args: DictConfig) -> None:
     OmegaConf.save(config=args, f=config_path)
     
     #Initialising trajectory buffer
-    trajectory_buffer = TrajectoryReplayBuffer(env.observation_space.shape[0], args.env.max_steps, int(np.floor(args.total_timestep/args.env.max_steps)), device)
+    trajectory_buffer = TrajectoryReplayBuffer(env.observation_space.shape[0], args.env.max_steps, int(np.floor(2*args.total_timestep/args.env.max_steps)), device)
     
     episode_states = []
     episode_actions = []
