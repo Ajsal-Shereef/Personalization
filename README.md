@@ -8,12 +8,12 @@ The core idea is to fuse a **task-specific policy** (learned by a standard RL ag
 
 The grid below showcases the behavior of the agent under three different policies across various environments.
 * **DQN**: The agent follows the base policy, which is trained to maximize the task reward only.
-* **LSTM**: The agent follows the intent-only policy, which may not be optimal for the main task.
+* **LSTM**: The agent follows the intent-only policy, which captures the human intent may not be optimal for the main task.
 * **Fusion**: The agent uses the dynamic fusion policy, balancing task completion with user preferences.
 
 | DQN | LSTM | Fusion |
 | :---: | :---: | :---: |
-| ![DQN Result 1](Results/Highway/dqn.gif) | ![LSTM Result 1](Results/Highway/lstm.gif) | ![Fusion Result 1](Results/Highway/fusion.gif) |
+| ![DQN Result](Results/Highway/dqn.gif) | ![LSTM Result](Results/Highway/lstm.gif) | ![Fusion Result](Results/Highway/fusion.gif) |
 <!-- | ![DQN Result 2](Results/dqn_2.gif) | ![LSTM Result 2](Results/lstm_2.gif) | ![Fusion Result 2](Results/fusion_2.gif) |
 | ![DQN Result 3](Results/dqn_3.gif) | ![LSTM Result 3](Results/lstm_3.gif) | ![Fusion Result 3](Results/fusion_3.gif) | -->
 
