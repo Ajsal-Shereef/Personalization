@@ -14,8 +14,8 @@ The grid below showcases the behavior of the agent under three different policie
 | DQN | LSTM | Fusion |
 | :---: | :---: | :---: |
 | ![DQN Result](Results/Highway/dqn.gif) | ![LSTM Result](Results/Highway/lstm.gif) | ![Fusion Result](Results/Highway/fusion.gif) |
-<!-- | ![DQN Result 2](Results/dqn_2.gif) | ![LSTM Result 2](Results/lstm_2.gif) | ![Fusion Result 2](Results/fusion_2.gif) |
-| ![DQN Result 3](Results/dqn_3.gif) | ![LSTM Result 3](Results/lstm_3.gif) | ![Fusion Result 3](Results/fusion_3.gif) | -->
+| ![DQN Result](Results/Pong/dqn.gif) | ![LSTM Result](Results/Pong/lstm.gif) | ![Fusion Result](Results/Pong/fusion.gif) |
+<!-- | ![DQN Result 3](Results/dqn_3.gif) | ![LSTM Result 3](Results/lstm_3.gif) | ![Fusion Result 3](Results/fusion_3.gif) | --> -->
 
 
 ## How it Works
