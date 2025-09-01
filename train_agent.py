@@ -73,7 +73,6 @@ def train(args: DictConfig) -> None:
         action = agent.get_action(state, env_total_steps)
         next_state, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
-
         episode_states.append(state)
         episode_actions.append(action)
         episode_labels.append(labeller.get_human_feedback(state))

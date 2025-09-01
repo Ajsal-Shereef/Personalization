@@ -1,5 +1,5 @@
 defaults:
-  - env : highway
+  - env : pong
   - agent : dqn
   - LSTM : lstm
 

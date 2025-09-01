@@ -30,12 +30,12 @@ class TrajectoryReplayBuffer:
 
     # Add a new episode to the buffer
     def add(self, trajectory):
-        # If the buffer is full, do not add the new trajectory and just return.
-        if self.num_trajectories >= self.size:
-            self.full = True
-            return
         previous_state, actions, label = trajectory
         traj_length = len(previous_state)
+        # If the buffer is full, do not add the new trajectory and just return.
+        if self.num_trajectories >= self.size or traj_length <= 1:
+            self.full = True
+            return
         
         idx = self.next_ind
         self.states_buffer[idx, :traj_length] = previous_state

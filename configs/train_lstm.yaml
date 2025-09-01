@@ -1,5 +1,5 @@
 defaults:
-  - env : highway
+  - env : pong
   - LSTM : lstm
 
 epochs : 200000

@@ -22,4 +22,4 @@ Network:
   video_save_path : results
   interaction_data_path : data
 Test: 
-  checkpoint : model_weights/DQN/2025-08-28_19-25-46_LJ17PW/
+  checkpoint : model_weights/DQN/2025-08-31_19-05-28_38DVEU/
