@@ -30,15 +30,20 @@ def identity(x, dim=0):
     """
     return x
 
-import torch
+def get_trajectory_feedback(labels, train_len, fraction = 0.25):
+    label_sum = torch.abs(torch.sum(labels, dim=-1))
+    binary_label = torch.zeros_like(label_sum)
+    binary_label[label_sum>=train_len*fraction] = 1
+    return binary_label
 
 def snip_trajectories(
     is_snip_trajectory: bool,
     snipping_window : int,
+    binary_feedback : bool,
     train_observations: torch.Tensor,
     train_action: torch.Tensor,
     train_len: torch.Tensor,
-    labels: torch.Tensor
+    labels: torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Snips trajectories to a fixed length of snipping_window, starting from a random index.
@@ -60,7 +65,10 @@ def snip_trajectories(
     """
     if not is_snip_trajectory:
         # If snipping is not required, return the original tensors.
-        return [train_observations, train_action, train_len, torch.sum(labels, dim=-1)]
+        if not binary_feedback:
+            return [train_observations, train_action, train_len, torch.sum(labels, dim=-1)]
+        else:
+            return [train_observations, train_action, train_len, get_trajectory_feedback(labels, train_len)]
     # Ensure all operations happen on the same device as the input tensors
     device = train_observations.device
     batch_size = train_observations.shape[0]
@@ -99,7 +107,10 @@ def snip_trajectories(
     # 5. Update the trajectory lengths
     train_len = torch.clamp(train_len, max=snipping_window)
     
-    return [train_observations, train_action, train_len, torch.sum(labels, dim=-1)]
+    if not binary_feedback:
+        return [train_observations, train_action, train_len, torch.sum(labels, dim=-1)]
+    else:
+        return [train_observations, train_action, train_len, get_trajectory_feedback(labels, train_len)]
 
 def custom_action_encoding(action_tensor: torch.Tensor, num_actions: int, dim: int):
     """

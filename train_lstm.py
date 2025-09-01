@@ -68,7 +68,7 @@ def train(args: DictConfig) -> None:
     epoch_bar = tqdm(range(1, args.epochs+1), desc="Training Progress", unit="epoch")
     for epoch in epoch_bar:
         for data in dataloader:
-            data = snip_trajectories(args.env.snip_trajectory, args.env.snip_trajectory_window, *data)
+            data = snip_trajectories(args.env.snip_trajectory, args.env.snip_trajectory_window, args.binary_feedback, *data)
             metric = model.learn(data)
             
         if args.use_wandb:
