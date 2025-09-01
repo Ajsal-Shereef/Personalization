@@ -6,7 +6,7 @@ players_speed_ratio : 0.5
 snip_trajectory : True
 snip_trajectory_window : 50
 fps : 30
-
+total_timestep : 1000000
 Fusion:
   T_phi : 0.6
   crt : 0

@@ -57,7 +57,7 @@ def train(args: DictConfig) -> None:
     OmegaConf.save(config=args, f=config_path)
     
     #Initialising trajectory buffer
-    trajectory_buffer = TrajectoryReplayBuffer(env.observation_space.shape[0], args.env.max_steps, int(np.floor(2*args.total_timestep/args.env.max_steps)), device)
+    trajectory_buffer = TrajectoryReplayBuffer(env.observation_space.shape[0], args.env.max_steps, int(np.floor(2*args.env.total_timestep/args.env.max_steps)), device)
     
     episode_states = []
     episode_actions = []
@@ -69,7 +69,7 @@ def train(args: DictConfig) -> None:
     state, info = env.reset()
     cumulative_reward = 0
     average_episodic_return = deque(maxlen=10)
-    for i in range(1, args.total_timestep+1):
+    for i in range(1, args.env.total_timestep+1):
         action = agent.get_action(state, env_total_steps)
         next_state, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated

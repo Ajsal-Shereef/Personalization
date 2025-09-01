@@ -1,5 +1,4 @@
 import os
-import cv2
 import random
 import string
 import numpy as np
@@ -10,14 +9,12 @@ import torch.nn.functional as F
 
 from PIL import Image
 from datetime import datetime
-from scipy.special import softmax
 from itertools import zip_longest
-from sklearn.manifold import TSNE
 from collections.abc import Iterable
+from torch.utils.data import Dataset
 from torchvision.utils import make_grid
 import torch.optim.lr_scheduler as lr_scheduler
-from torch.utils.data import Dataset, DataLoader
-from torchvision.models import vgg16, VGG16_Weights
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -279,13 +276,13 @@ def create_dump_directory(path):
     os.makedirs(dump_dir, exist_ok=True)
     return dump_dir
 
-def write_video(frames, episode, dump_dir, frameSize=(224, 224)):
-    os.makedirs(dump_dir, exist_ok=True)
-    video_path = os.path.join(dump_dir, f'{episode}.mp4')
-    video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*'mp4v'), 1, frameSize, isColor=True)
-    for img in frames:
-        video.write(img)
-    video.release()
+# def write_video(frames, episode, dump_dir, frameSize=(224, 224)):
+#     os.makedirs(dump_dir, exist_ok=True)
+#     video_path = os.path.join(dump_dir, f'{episode}.mp4')
+#     video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*'mp4v'), 1, frameSize, isColor=True)
+#     for img in frames:
+#         video.write(img)
+#     video.release()
     
 def zip_strict(*iterables: Iterable) -> Iterable:
     r"""

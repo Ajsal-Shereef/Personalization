@@ -8,6 +8,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 from collections import deque
+from torch.utils.data import DataLoader
 from architectures.common_utils import *
 from omegaconf import DictConfig, OmegaConf
 
