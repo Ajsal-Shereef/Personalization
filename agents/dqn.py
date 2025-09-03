@@ -10,7 +10,7 @@ import torch.nn as nn
 from PIL import Image
 from torch.nn.utils import clip_grad_norm_
 from agents.agent_utils.networks import Critic
-from agents.agent_utils.buffer import ReplayBuffer
+from agents.agent_utils.buffer import ReplayBuffer, PrioritizedReplayBuffer
 from architectures.common_utils import save_gif, zip_strict
 
 
@@ -52,7 +52,7 @@ class DQN(nn.Module):
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=learning_rate)
         
         #Buffer for storing the experience
-        self.buffer = ReplayBuffer(buffer_size=self.buffer_size, batch_size=self.batch_size, device=device)
+        self.buffer = PrioritizedReplayBuffer(buffer_size=self.buffer_size, batch_size=self.batch_size, device=device)
 
         #Action_space
         self.action_space = torch.tensor(range(self.action_size)).to(device)
@@ -77,7 +77,7 @@ class DQN(nn.Module):
         if len(self.buffer) < self.batch_size:
             return {}
         
-        states, actions, rewards, next_states, truncated, terminated = self.buffer.sample()
+        states, actions, rewards, next_states, truncated, terminated, idxs, is_weights = self.buffer.sample()
         done = truncated + terminated
         #Compute losses--------------------------------------------------
         # ---------------------------- Critic ---------------------------- #
@@ -95,13 +95,17 @@ class DQN(nn.Module):
         # Compute critic loss
         q = self.critic(states)
         action_q_values = q.gather(1, actions.long())
-                
-        critic_loss = F.smooth_l1_loss(action_q_values, Q_targets)
+        td_errors = Q_targets - action_q_values
+        critic_loss = (is_weights.unsqueeze(1) * F.smooth_l1_loss(action_q_values, Q_targets, reduction="none")).mean()
+
 
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         clip_grad_norm_(self.critic.parameters(), self.clip_grad_param)
         self.critic_optimizer.step()
+        
+        #Update the priorities
+        self.buffer.update_priorities(idxs, td_errors.squeeze())
         
         # ----------------------- update target networks ----------------------- #
         if not self.hard_update:

@@ -12,7 +12,7 @@ Network:
   target_update_freequency : 1000
   initial_random_samples : 4000
   epsilon_start : 1.0
-  epsilon_end : 0.01
+  epsilon_end : 0.10
   epsilon_decay : 20000
   batch_size : 100
   buffer_size : 200000
@@ -22,4 +22,4 @@ Network:
   video_save_path : results
   interaction_data_path : data
 Test: 
-  checkpoint : model_weights/DQN/2025-08-31_19-05-28_38DVEU/
+  checkpoint : model_weights/DQN/2025-09-03_00-23-11_PNV6HO/

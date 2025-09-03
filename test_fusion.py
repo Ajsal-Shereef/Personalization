@@ -32,9 +32,13 @@ def test(args: DictConfig) -> None:
     if args.env.name ==  "Highway":
         from env.highway import Highway
         env = Highway(args.env)
+        from labeller.oracle import HumanOracleHighway
+        labeller = HumanOracleHighway(env, args.mode)
     elif args.env.name ==  "Pong":
         from env.pong import Pong
         env = Pong(args.env)
+        from labeller.oracle import HumanOraclePong
+        labeller = HumanOraclePong(env, args.mode)
     else:
         raise NotImplementedError("The environment is not implemented yet")
     
@@ -113,13 +117,21 @@ def test(args: DictConfig) -> None:
             return action, lstm_q_values
             
     dump_dir = f"{args.result_path}/{env.name}/{args.action_selection_strategy}"
+    episode_statistics = []
     for episode in range(args.test_episodes):
         frame_array = []
+        labeller.reset_episode_count()
         state, info = env.reset()
         frame_array.append(env.get_frame())
+        if args.env.name ==  "Highway":
+            labeller.update_counts(info)
+        else:
+            labeller.update_counts(state)
         g_t = 0
         done = False
         previous_q_value = 0
+        episode_step = 1
+        episodic_reward = 0
         while not done:
             if not args.action_selection_strategy == "fusion":
                 action = select_action(state, 0)
@@ -135,12 +147,25 @@ def test(args: DictConfig) -> None:
                 shifted_redistributed_reward = redistributed_reward - np.mean(redistributed_reward)
                 g_t += shifted_redistributed_reward[action]
                 previous_q_value = lstm_q_values
-            
-            next_state, reward, truncated, terminated, _ = env.step(action)
+            episode_step += 1
+            next_state, reward, truncated, terminated, info = env.step(action)
+            episodic_reward += reward
+            if args.env.name ==  "Highway":
+                labeller.update_counts(info)
+            else:
+                labeller.update_counts(next_state)
             frame_array.append(env.get_frame())
             done = truncated + terminated
             state = next_state
         save_gif(frame_array, episode, dump_dir, fps=args.env.fps)
+        #Get the statistics
+        episode_statistics.append(labeller.get_statistics(episode_step) + [episodic_reward])
+    statistics_array = np.array(episode_statistics)
+    print(statistics_array )
+    statistics_description = labeller.get_statistics_description() + ["Episode score"]
+    mean_statistics = np.mean(statistics_array, axis=0)
+    for value, key in zip(statistics_description, mean_statistics):
+        print(f"{value}: {key}")
 
 if __name__ == "__main__":
     test()
