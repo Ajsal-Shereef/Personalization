@@ -161,7 +161,7 @@ def test(args: DictConfig) -> None:
         #Get the statistics
         episode_statistics.append(labeller.get_statistics(episode_step) + [episodic_reward])
     statistics_array = np.array(episode_statistics)
-    print(statistics_array )
+    print(statistics_array)
     statistics_description = labeller.get_statistics_description() + ["Episode score"]
     mean_statistics = np.mean(statistics_array, axis=0)
     for value, key in zip(statistics_description, mean_statistics):

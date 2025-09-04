@@ -8,8 +8,8 @@ snip_trajectory_window : 50
 fps : 30
 total_timestep : 1000000
 Fusion:
-  T_phi : 0.3
+  T_phi : 0.8
   crt : 0
   T_min : 0.3
-  T_max : 5
+  T_max : 1
   slop : 1

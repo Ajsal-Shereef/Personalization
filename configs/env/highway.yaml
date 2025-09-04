@@ -5,10 +5,10 @@ snip_trajectory : False
 snip_trajectory_window : None
 vehicles_count : 5
 fps : 2.5
-total_timestep : 200000
+total_timestep : 300000
 Fusion:
   T_phi : 1
   crt : 0
   T_min : 0.3
-  T_max : 2
+  T_max : 1.5
   slop : 1

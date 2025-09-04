@@ -44,6 +44,7 @@ class DQN(nn.Module):
         self.test_episodes = Network["test_episodes"]
         self.video_dir =  Network["video_save_path"]
         self.hard_update = Network["hard_update"]
+        self.learn_after = Network["learn_after"]
         
         self.critic = Critic(self.input_dim, self.action_size, fc_hidden_size, Network["batch_norm"]).to(device)
         self.critic_target = Critic(self.input_dim, self.action_size, fc_hidden_size, Network["batch_norm"]).to(device)
@@ -74,7 +75,7 @@ class DQN(nn.Module):
         DQN update rule
         """
         
-        if len(self.buffer) < self.batch_size:
+        if len(self.buffer) < self.batch_size and timstep < self.learn_after:
             return {}
         
         states, actions, rewards, next_states, truncated, terminated, idxs, is_weights = self.buffer.sample()
