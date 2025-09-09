@@ -5,7 +5,8 @@ snip_trajectory : False
 snip_trajectory_window : None
 vehicles_count : 5
 fps : 2.5
-total_timestep : 300000
+total_timestep : 200000
+speed_feedback : True
 Fusion:
   T_phi : 1
   crt : 0

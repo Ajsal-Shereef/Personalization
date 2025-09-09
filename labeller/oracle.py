@@ -1,8 +1,9 @@
 class HumanOracleHighway():
     """This class is a simmulated human which gives the safety feedback"""
-    def __init__(self, env, mode):
+    def __init__(self, env, mode, speed_feedback):
         self.env = env
         self.mode = mode
+        self.speed_feedback = speed_feedback
         self.reset_arrays()
         self.reset_episode_count()
 
@@ -17,11 +18,15 @@ class HumanOracleHighway():
     def get_human_feedback(self, observation = None):
         vehicle = self.env.unwrapped.vehicle
         lane = vehicle.lane_index[-1]
+        value = 0
         if lane == 2 and (self.mode == "preference" or self.mode == "both"):
-            return 1
+            value = 1
         if lane == 0 and (self.mode == "avoid" or self.mode == "both"):
-            return -1
-        return 0
+            value = -1
+        if self.speed_feedback:
+            if vehicle.speed > 25:
+                value -= 1
+        return value
     
     def get_statistics(self, episode_step):
         if self.mode == 'preference':

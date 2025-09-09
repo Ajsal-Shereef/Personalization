@@ -26,7 +26,7 @@ def train(args: DictConfig) -> None:
         env = Highway(args.env)
         #Initialisng the labeller
         from labeller.oracle import HumanOracleHighway
-        labeller = HumanOracleHighway(env, args.mode)
+        labeller = HumanOracleHighway(env, args.mode, args.env.speed_feedback)
     elif args.env.name ==  "Pong":
         from env.pong import Pong
         env = Pong(args.env)

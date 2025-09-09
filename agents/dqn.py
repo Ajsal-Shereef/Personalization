@@ -45,6 +45,7 @@ class DQN(nn.Module):
         self.video_dir =  Network["video_save_path"]
         self.hard_update = Network["hard_update"]
         self.learn_after = Network["learn_after"]
+        self.use_per = Network["use_per"]
         
         self.critic = Critic(self.input_dim, self.action_size, fc_hidden_size, Network["batch_norm"]).to(device)
         self.critic_target = Critic(self.input_dim, self.action_size, fc_hidden_size, Network["batch_norm"]).to(device)
@@ -53,7 +54,10 @@ class DQN(nn.Module):
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=learning_rate)
         
         #Buffer for storing the experience
-        self.buffer = PrioritizedReplayBuffer(buffer_size=self.buffer_size, batch_size=self.batch_size, device=device)
+        if self.use_per:
+            self.buffer = PrioritizedReplayBuffer(buffer_size=self.buffer_size, batch_size=self.batch_size, device=device)
+        else:
+            self.buffer = ReplayBuffer(buffer_size=self.buffer_size, batch_size=self.batch_size, device=device)
 
         #Action_space
         self.action_space = torch.tensor(range(self.action_size)).to(device)
@@ -78,7 +82,10 @@ class DQN(nn.Module):
         if len(self.buffer) < self.batch_size and timstep < self.learn_after:
             return {}
         
-        states, actions, rewards, next_states, truncated, terminated, idxs, is_weights = self.buffer.sample()
+        if self.use_per:
+            states, actions, rewards, next_states, truncated, terminated, idxs, is_weights = self.buffer.sample()
+        else:
+            states, actions, rewards, next_states, truncated, terminated = self.buffer.sample()
         done = truncated + terminated
         #Compute losses--------------------------------------------------
         # ---------------------------- Critic ---------------------------- #
@@ -96,17 +103,20 @@ class DQN(nn.Module):
         # Compute critic loss
         q = self.critic(states)
         action_q_values = q.gather(1, actions.long())
-        td_errors = Q_targets - action_q_values
-        critic_loss = (is_weights.unsqueeze(1) * F.smooth_l1_loss(action_q_values, Q_targets, reduction="none")).mean()
-
+        if self.use_per:
+            critic_loss = (is_weights.unsqueeze(1) * F.smooth_l1_loss(action_q_values, Q_targets, reduction="none")).mean()
+        else:
+            critic_loss = F.smooth_l1_loss(action_q_values, Q_targets, reduction="none").mean()
 
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         clip_grad_norm_(self.critic.parameters(), self.clip_grad_param)
         self.critic_optimizer.step()
         
-        #Update the priorities
-        self.buffer.update_priorities(idxs, td_errors.squeeze())
+        if self.use_per:
+            td_errors = Q_targets - action_q_values
+            #Update the priorities
+            self.buffer.update_priorities(idxs, td_errors.squeeze())
         
         # ----------------------- update target networks ----------------------- #
         if not self.hard_update:

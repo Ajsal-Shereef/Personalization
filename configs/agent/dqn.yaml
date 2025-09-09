@@ -12,10 +12,11 @@ Network:
   target_update_freequency : 1000
   initial_random_samples : 4000
   epsilon_start : 1.0
-  epsilon_end : 0.10
+  epsilon_end : 0.01
   epsilon_decay : 20000
   batch_size : 100
-  buffer_size : 300000
+  buffer_size : 200000
+  use_per : False
   learn_after : 10000
   clip_grad_param : 10
   test_episodes : 10

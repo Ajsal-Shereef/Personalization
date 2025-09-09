@@ -58,7 +58,7 @@ class Pong(gym.Env):
     def step(self, action):
         reward = self.p.act(self.actions[action])
         if reward == -6:
-            reward = -1
+            reward = 0
         elif reward == +6:
             reward = +1
         terminated = self.p.game_over()

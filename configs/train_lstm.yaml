@@ -7,4 +7,4 @@ use_wandb : False
 mode : preference
 datapath : data
 save_every : 10000
-binary_feedback : True 
+binary_feedback : False 
