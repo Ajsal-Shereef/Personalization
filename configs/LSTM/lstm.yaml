@@ -20,4 +20,4 @@ Network:
     patience: 30
     min_lr : 1e-5
 Test:
-  checkpoint : model_weights/LSTM/2025-09-05_00-30-49_RBRQKQ/
+  checkpoint : model_weights/LSTM/2025-09-05_20-08-08_UPU8GX/

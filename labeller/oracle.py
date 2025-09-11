@@ -30,19 +30,19 @@ class HumanOracleHighway():
     
     def get_statistics(self, episode_step):
         if self.mode == 'preference':
-            return [self.episode_right_lane/episode_step, self.episode_hitting]
+            return [self.episode_right_lane/episode_step, self.episode_hitting, self.speed_violations/episode_step]
         if self.mode == 'avoid':
-            return [self.episode_left_lane/episode_step, self.episode_hitting]
+            return [self.episode_left_lane/episode_step, self.episode_hitting, self.speed_violations/episode_step]
         if self.mode == 'both':
-            return [self.episode_right_lane/episode_step, self.episode_left_lane/episode_step, self.episode_hitting]
+            return [self.episode_right_lane/episode_step, self.episode_left_lane/episode_step, self.episode_hitting, self.speed_violations/episode_step]
         
     def get_statistics_description(self):
         if self.mode == 'preference':
-            return ["Right lane %", "Hitting"]
+            return ["Right lane %", "Hitting", "Speed violations %"]
         if self.mode == 'avoid':
-            return ["Left lane %", "Hitting"]
+            return ["Left lane %", "Hitting", "Speed violations %"]
         if self.mode == 'both':
-            return ["Right lane %", "Left lane %", "Hitting"]
+            return ["Right lane %", "Left lane %", "Hitting", "Speed violations %"]
         
     def update_counts(self, info):
         vehicle = self.env.unwrapped.vehicle
@@ -55,11 +55,15 @@ class HumanOracleHighway():
             self.cummulative_left_lane += 1
         if info["crashed"]:
             self.episode_hitting += 1
+        if self.speed_feedback:
+            if vehicle.speed > 25:
+                 self.speed_violations += 1
         
     def reset_episode_count(self):
         self.episode_right_lane = 0
         self.episode_left_lane = 0
         self.episode_hitting = 0
+        self.speed_violations = 0
     
     def reset_arrays(self):
         self.cummulative_right_lane = 0

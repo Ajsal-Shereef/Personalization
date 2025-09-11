@@ -11,5 +11,5 @@ Fusion:
   T_phi : 1
   crt : 0
   T_min : 0.3
-  T_max : 1.5
+  T_max : 10
   slop : 1

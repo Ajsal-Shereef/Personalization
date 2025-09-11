@@ -7,6 +7,7 @@ snip_trajectory : True
 snip_trajectory_window : 50
 fps : 30
 total_timestep : 1000000
+speed_feedback : null
 Fusion:
   T_phi : 1
   crt : 0

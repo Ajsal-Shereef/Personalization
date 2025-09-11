@@ -33,7 +33,7 @@ def test(args: DictConfig) -> None:
         from env.highway import Highway
         env = Highway(args.env)
         from labeller.oracle import HumanOracleHighway
-        labeller = HumanOracleHighway(env, args.mode)
+        labeller = HumanOracleHighway(env, args.mode, args.env.speed_feedback)
     elif args.env.name ==  "Pong":
         from env.pong import Pong
         env = Pong(args.env)
@@ -159,10 +159,14 @@ def test(args: DictConfig) -> None:
             state = next_state
         save_gif(frame_array, episode, dump_dir, fps=args.env.fps)
         #Get the statistics
-        episode_statistics.append(labeller.get_statistics(episode_step) + [episodic_reward])
+        if args.env.name ==  "Highway":
+            normalised_episode_reward = episodic_reward/episode_step
+        else:
+            normalised_episode_reward = episodic_reward
+        episode_statistics.append(labeller.get_statistics(episode_step) + [normalised_episode_reward] + [episodic_reward])
     statistics_array = np.array(episode_statistics)
     print(statistics_array)
-    statistics_description = labeller.get_statistics_description() + ["Episode score"]
+    statistics_description = labeller.get_statistics_description() + ["Normalised episode score"] + ["Episode score"]
     mean_statistics = np.mean(statistics_array, axis=0)
     for value, key in zip(statistics_description, mean_statistics):
         print(f"{value}: {key}")
